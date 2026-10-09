@@ -1,0 +1,36 @@
+---
+import { getCollection, render } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import '../../styles/global.css';
+
+export async function getStaticPaths() {
+  const resources = await getCollection('resources');
+  return resources.map(resource => ({
+    params: { slug: resource.id },
+    props: { resource },
+  }));
+}
+
+const { resource } = Astro.props;
+const { Content } = await render(resource);
+---
+
+<BaseLayout title={resource.data.title} description={resource.data.description}>
+  <main class="site-shell detail-shell">
+    <header class="site-header">
+      <a class="site-name" href={import.meta.env.BASE_URL}>bookmarkS</a>
+      <a class="back-link" href={import.meta.env.BASE_URL}>返回列表</a>
+    </header>
+    <article class="detail">
+      <p class="eyebrow">{resource.data.type === 'repo' ? 'Git 仓库' : '网站'}</p>
+      <h1>{resource.data.title}</h1>
+      {resource.data.description && <p class="lede">{resource.data.description}</p>}
+      <div class="resource-meta detail-meta">
+        {resource.data.added && <time datetime={resource.data.added.toISOString()}>{resource.data.added.toISOString().slice(0, 10)}</time>}
+        {resource.data.tags.map(tag => <span class="tag">{tag}</span>)}
+      </div>
+      <a class="visit-link" href={resource.data.url} target="_blank" rel="noopener noreferrer">访问原网站 ↗</a>
+      <div class="markdown-body"><Content /></div>
+    </article>
+  </main>
+</BaseLayout>

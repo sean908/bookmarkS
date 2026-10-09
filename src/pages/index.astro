@@ -1,0 +1,68 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import '../styles/global.css';
+
+const resources = (await getCollection('resources')).sort((a, b) =>
+  (b.data.added?.getTime() ?? 0) - (a.data.added?.getTime() ?? 0),
+);
+---
+
+<BaseLayout description="值得留住的网站与开源项目。">
+  <main class="site-shell">
+    <header class="site-header">
+      <a class="site-name" href={import.meta.env.BASE_URL}>bookmarkS</a>
+      <span class="resource-count">{resources.length} 条收藏</span>
+    </header>
+    <section class="intro">
+      <p class="eyebrow">个人收藏</p>
+      <h1>值得留住的东西。</h1>
+      <p class="lede">网站、工具与灵感，持续整理中。</p>
+    </section>
+    <section aria-label="资源列表">
+      <label class="search-label" for="resource-search">搜索收藏</label>
+      <input class="search" id="resource-search" type="search" placeholder="搜索标题、简介或标签" autocomplete="off" />
+      <p class="list-count" id="list-count" aria-live="polite">显示 {resources.length} 条</p>
+      <div class="resource-list" id="resource-list">
+        {resources.map(resource => {
+          const searchText = [resource.data.title, resource.data.description, ...resource.data.tags].join(' ').toLocaleLowerCase();
+          return <article class="resource" data-search={searchText}>
+            <div class="resource-main">
+              <div class="resource-heading">
+                <h2><a href={`${import.meta.env.BASE_URL}resources/${resource.id}/`}>{resource.data.title}</a></h2>
+                {resource.data.featured && <span class="featured">精选</span>}
+              </div>
+              {resource.data.description && <p class="description">{resource.data.description}</p>}
+              <div class="resource-meta">
+                <span class="type">{resource.data.type === 'repo' ? 'Git 仓库' : '网站'}</span>
+                {resource.data.added && <time datetime={resource.data.added.toISOString()}>{resource.data.added.toISOString().slice(0, 10)}</time>}
+                {resource.data.tags.map(tag => <span class="tag">{tag}</span>)}
+              </div>
+            </div>
+            <a class="external-link" href={resource.data.url} target="_blank" rel="noopener noreferrer" aria-label={`打开 ${resource.data.title}`}>↗</a>
+          </article>;
+        })}
+      </div>
+      <p class="empty" id="empty" hidden>没有符合条件的收藏。</p>
+    </section>
+  </main>
+</BaseLayout>
+
+<script>
+  const search = document.querySelector<HTMLInputElement>('#resource-search');
+  const items = [...document.querySelectorAll<HTMLElement>('.resource')];
+  const count = document.querySelector<HTMLElement>('#list-count');
+  const empty = document.querySelector<HTMLElement>('#empty');
+
+  search?.addEventListener('input', () => {
+    const query = search.value.trim().toLocaleLowerCase();
+    const visibleItems = items.filter(item => {
+      const matches = item.dataset.search?.includes(query) ?? false;
+      item.hidden = !matches;
+      return matches;
+    }).length;
+
+    if (count) count.textContent = `显示 ${visibleItems} 条`;
+    if (empty) empty.hidden = visibleItems > 0;
+  });
+</script>
